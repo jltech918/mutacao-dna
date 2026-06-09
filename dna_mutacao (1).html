@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mutação do DNA</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Inter:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #0a0f1e;
+    color: #e8f4f8;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 24px 16px 40px;
+  }
+
+  h1 { font-size: 1.05rem; font-weight: 700; color: #7dd3fc; letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 0.78rem; color: #475569; text-align: center; margin-bottom: 24px; }
+
+  .card {
+    background: #111827;
+    border: 1px solid #1e3a5f;
+    border-radius: 16px;
+    padding: 24px 20px;
+    max-width: 600px;
+    width: 100%;
+    box-shadow: 0 0 40px rgba(56,182,255,0.07);
+  }
+
+  .steps { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .step-dot { width: 10px; height: 10px; border-radius: 50%; background: #1e3a5f; transition: background 0.3s; }
+  .step-dot.active { background: #38bdf8; }
+  .step-dot.done   { background: #22c55e; }
+
+  .section-title { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #475569; margin-bottom: 12px; }
+
+  .animal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px; }
+  .animal-btn {
+    background: #0f172a; border: 2px solid #1e3a5f; border-radius: 12px;
+    padding: 12px 8px; cursor: pointer; text-align: center;
+    transition: border-color 0.2s, transform 0.15s; color: #e2e8f0;
+  }
+  .animal-btn:hover { border-color: #38bdf8; transform: scale(1.03); }
+  .animal-btn.selected { border-color: #38bdf8; background: #1e3a5f; }
+  .animal-btn .emoji { font-size: 2rem; display: block; margin-bottom: 4px; }
+  .animal-btn .name  { font-size: 0.72rem; color: #94a3b8; }
+
+  .trait-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+  .trait-btn {
+    background: #0f172a; border: 2px solid #1e3a5f; border-radius: 10px;
+    padding: 11px 14px; cursor: pointer; text-align: left; color: #e2e8f0;
+    font-size: 0.85rem; transition: border-color 0.2s, transform 0.15s;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .trait-btn:hover { border-color: #a78bfa; transform: translateX(3px); }
+  .trait-btn.selected { border-color: #a78bfa; background: #2e1f5e; }
+  .trait-btn .t-icon  { font-size: 1.3rem; }
+  .trait-btn .t-label { font-size: 0.82rem; }
+  .trait-btn .t-sub   { font-size: 0.7rem; color: #64748b; }
+
+  /* DNA */
+  .positions { display: flex; gap: 4px; justify-content: center; margin-bottom: 4px; }
+  .pos-num { width: 36px; text-align: center; font-size: 0.6rem; color: #334155; font-family: 'Share Tech Mono', monospace; }
+  .strand-label { font-size: 0.65rem; color: #475569; text-align: center; letter-spacing: 0.08em; margin-bottom: 4px; }
+  .strand { display: flex; gap: 4px; justify-content: center; flex-wrap: wrap; }
+  .bonds  { display: flex; gap: 4px; justify-content: center; margin: 4px 0; }
+  .bond   { width: 36px; text-align: center; font-size: 0.65rem; color: #1e3a5f; }
+
+  .base {
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1rem; font-weight: 700;
+    border: 2px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+    user-select: none;
+  }
+  /* clickable bases on strand1 */
+  .base.clickable { cursor: pointer; }
+  .base.clickable:hover { transform: scale(1.15); filter: brightness(1.3); }
+
+  .base.A { background:#1e3a5f; color:#38bdf8; border-color:#0ea5e9; }
+  .base.T { background:#1a3a2a; color:#4ade80; border-color:#22c55e; }
+  .base.C { background:#3b1f3f; color:#e879f9; border-color:#d946ef; }
+  .base.G { background:#3b2a10; color:#fb923c; border-color:#f97316; }
+
+  .base.mutated {
+    animation: mpulse 0.5s ease forwards;
+    box-shadow: 0 0 14px 3px currentColor;
+    border-style: dashed;
+  }
+  @keyframes mpulse {
+    0%  { transform: scale(1); }
+    40% { transform: scale(1.35); }
+    100%{ transform: scale(1.1); }
+  }
+
+  .hint-dna {
+    font-size: 0.75rem; color: #f59e0b; text-align: center;
+    margin: 10px 0 6px; animation: blink 1.4s ease-in-out infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+  .hint-dna.done { animation: none; color: #475569; }
+
+  .mut-label {
+    margin: 12px 0 8px; padding: 12px 14px;
+    background: #0f172a; border-left: 3px solid #f59e0b;
+    border-radius: 8px; font-size: 0.8rem; color: #cbd5e1;
+    display: none;
+  }
+  .mut-label.show { display: block; }
+  .mut-label strong { color: #f59e0b; }
+
+  .question-area { margin-top: 20px; text-align: center; display: none; }
+  .question-area.show { display: block; }
+  .q-text { font-size: 0.95rem; font-style: italic; color: #e2e8f0; margin-bottom: 14px; }
+
+  .btn-row { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+  .btn { padding: 10px 22px; border-radius: 10px; border: none; font-family:'Inter',sans-serif; font-size:0.85rem; font-weight:600; cursor:pointer; transition:transform 0.15s; }
+  .btn:hover { transform: translateY(-2px); }
+  .btn-help    { background:#22c55e; color:#052e16; }
+  .btn-harm    { background:#ef4444; color:#fff; }
+  .btn-neutral { background:#64748b; color:#fff; }
+
+  .feedback { margin-top:16px; padding:14px; border-radius:10px; font-size:0.83rem; line-height:1.5; display:none; }
+  .feedback.show  { display: block; }
+  .feedback.green { background:#052e16; border:1px solid #22c55e; color:#86efac; }
+  .feedback.red   { background:#2d0707; border:1px solid #ef4444; color:#fca5a5; }
+  .feedback.gray  { background:#1e293b; border:1px solid #64748b; color:#cbd5e1; }
+
+  .nav-row { display:flex; gap:10px; justify-content:center; margin-top:20px; flex-wrap:wrap; }
+  .btn-nav { padding:9px 22px; border-radius:10px; font-family:'Inter',sans-serif; font-size:0.82rem; font-weight:600; cursor:pointer; border:none; transition:transform 0.15s; }
+  .btn-nav:hover { transform: translateY(-2px); }
+  .btn-next  { background:#38bdf8; color:#0a0f1e; }
+  .btn-back  { background:#1e293b; color:#94a3b8; border:1px solid #334155; }
+  .btn-reset { background:#1e293b; color:#94a3b8; border:1px solid #334155; font-size:0.78rem; }
+
+  .selected-summary { display:flex; align-items:center; gap:10px; background:#0f172a; border-radius:10px; padding:10px 14px; margin-bottom:16px; font-size:0.82rem; color:#94a3b8; }
+  .selected-summary .big { font-size:1.8rem; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<h1>🧬 Mutação do DNA</h1>
+<p class="subtitle">Escolha um animal e uma característica para simular uma mutação</p>
+
+<div class="card">
+  <div class="steps">
+    <div class="step-dot active" id="dot0"></div>
+    <div class="step-dot" id="dot1"></div>
+    <div class="step-dot" id="dot2"></div>
+  </div>
+
+  <!-- STEP 0: Choose animal -->
+  <div id="step0">
+    <p class="section-title">Passo 1 — Escolha o animal</p>
+    <div class="animal-grid" id="animalGrid"></div>
+    <div class="nav-row">
+      <button class="btn-nav btn-next" onclick="goStep(1)" id="btnNext0" disabled>Próximo →</button>
+    </div>
+  </div>
+
+  <!-- STEP 1: Choose trait -->
+  <div id="step1" class="hidden">
+    <div class="selected-summary" id="animalSummary"></div>
+    <p class="section-title">Passo 2 — Escolha a característica a mutar</p>
+    <div class="trait-list" id="traitList"></div>
+    <div class="nav-row">
+      <button class="btn-nav btn-back" onclick="goStep(0)">← Voltar</button>
+      <button class="btn-nav btn-next" onclick="goStep(2)" id="btnNext1" disabled>Ver Sequência →</button>
+    </div>
+  </div>
+
+  <!-- STEP 2: DNA — user clicks a base to mutate -->
+  <div id="step2" class="hidden">
+    <div class="selected-summary" id="traitSummary"></div>
+    <p class="section-title">Passo 3 — Clique em uma base para mutar</p>
+
+    <div class="positions" id="posRow"></div>
+    <p class="strand-label">Fita Molde (5'→3')</p>
+    <div class="strand" id="strand1"></div>
+    <div class="bonds"  id="bonds"></div>
+    <div class="strand" id="strand2"></div>
+    <p class="strand-label" style="margin-top:4px">Fita Complementar (3'→5')</p>
+
+    <p class="hint-dna" id="hintDna">👆 Clique em qualquer base para aplicar uma mutação</p>
+
+    <div class="mut-label" id="mutLabel"></div>
+
+    <div class="question-area" id="questionArea">
+      <p class="q-text">"Essa mudança vai <strong>ajudar</strong> ou <strong>atrapalhar</strong> o animal?"</p>
+      <div class="btn-row">
+        <button class="btn btn-help"    onclick="answer('help')">✅ Vai Ajudar</button>
+        <button class="btn btn-harm"    onclick="answer('harm')">❌ Vai Atrapalhar</button>
+        <button class="btn btn-neutral" onclick="answer('neutral')">😐 Sem Efeito</button>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+
+    <div class="nav-row">
+      <button class="btn-nav btn-back" onclick="goStep(1)">← Voltar</button>
+      <button class="btn-nav btn-reset" onclick="resetAll()">🔄 Recomeçar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const ANIMALS = [
+  { id:'leopard', emoji:'🐆', name:'Leopardo',  traits:['coat','speed','vision'] },
+  { id:'frog',    emoji:'🐸', name:'Sapo',       traits:['skin','toxin','leap']   },
+  { id:'eagle',   emoji:'🦅', name:'Águia',      traits:['feather','sight','talon'] },
+  { id:'snake',   emoji:'🐍', name:'Cobra',      traits:['venom','digest','scale'] },
+  { id:'fish',    emoji:'🐠', name:'Peixe',      traits:['gills','color','fin']   },
+  { id:'turtle',  emoji:'🐢', name:'Tartaruga',  traits:['shell','lung','swim']   },
+];
+
+const TRAITS = {
+  coat:   { icon:'🟤', label:'Pelagem',        sub:'cor e padrão das manchas' },
+  speed:  { icon:'💨', label:'Velocidade',      sub:'musculatura e metabolismo' },
+  vision: { icon:'👁️', label:'Visão Noturna',   sub:'fotorreceptores oculares' },
+  skin:   { icon:'🟢', label:'Pele',            sub:'permeabilidade e textura' },
+  toxin:  { icon:'☠️', label:'Toxina',          sub:'glândulas de veneno' },
+  leap:   { icon:'🦵', label:'Salto',           sub:'comprimento dos membros' },
+  feather:{ icon:'🪶', label:'Penas',           sub:'estrutura e aerodinâmica' },
+  sight:  { icon:'🔭', label:'Acuidade Visual', sub:'densidade de cones na retina' },
+  talon:  { icon:'🦶', label:'Garras',          sub:'queratina e curvatura' },
+  venom:  { icon:'💉', label:'Veneno',          sub:'composição da peçonha' },
+  digest: { icon:'🫁', label:'Digestão',        sub:'enzimas do trato digestivo' },
+  scale:  { icon:'🐚', label:'Escamas',         sub:'estrutura protetora' },
+  gills:  { icon:'🌊', label:'Brânquias',       sub:'eficiência de troca gasosa' },
+  color:  { icon:'🎨', label:'Coloração',       sub:'pigmentação da pele' },
+  fin:    { icon:'🏊', label:'Nadadeiras',      sub:'forma e rigidez' },
+  shell:  { icon:'🛡️', label:'Carapaça',        sub:'espessura e dureza' },
+  lung:   { icon:'🫀', label:'Pulmão',          sub:'capacidade respiratória' },
+  swim:   { icon:'🌀', label:'Natação',         sub:'musculatura e hidrodinâmica' },
+};
+
+// Each scenario defines: original sequence + what happens when each position is clicked.
+// Every position maps to: { to, effect, text }
+// effect: 'help' | 'harm' | 'neutral'
+const SCENARIOS = {
+  'leopard-coat': {
+    seq: 'ATCGATCGATCG',
+    positions: {
+      0: { to:'G', effect:'neutral', text:'Mutação silenciosa — o aminoácido da proteína de pigmentação não mudou. <strong>Nenhuma alteração nas manchas.</strong>' },
+      1: { to:'C', effect:'harm',    text:'A mutação (T→C) reduziu a produção de eumelanina. As manchas do leopardo ficaram menos visíveis. <strong>Pior camuflagem na floresta.</strong>' },
+      2: { to:'T', effect:'help',    text:'A mutação (C→T) alterou a melanina: manchas maiores e mais escuras. <strong>Melhor camuflagem — vantagem seletiva!</strong>' },
+      3: { to:'A', effect:'neutral', text:'Mutação em região não codificante. <strong>Sem efeito na pelagem.</strong>' },
+      4: { to:'G', effect:'harm',    text:'A mutação (A→G) gerou uma proteína de pigmento instável. As manchas desbotam com o sol. <strong>Desvantagem de camuflagem.</strong>' },
+      5: { to:'C', effect:'neutral', text:'Mudança sinônima no códon da tirosinase. <strong>Pelagem inalterada.</strong>' },
+      6: { to:'A', effect:'help',    text:'A mutação (C→A) ativou um gene regulador de padrão. As manchas formam um padrão mais denso. <strong>Camuflagem aprimorada!</strong>' },
+      7: { to:'T', effect:'harm',    text:'A mutação (G→T) bloqueou parcialmente a melanogênese. <strong>Manchas apagadas — menor camuflagem.</strong>' },
+      8: { to:'G', effect:'neutral', text:'Mutação sinônima — mesmo aminoácido resultante. <strong>Sem alteração visível.</strong>' },
+      9: { to:'A', effect:'help',    text:'A mutação (T→A) gerou melanócitos mais ativos. <strong>Pelagem mais escura, ideal para sombra da floresta.</strong>' },
+      10:{ to:'T', effect:'harm',    text:'A mutação (C→T) produziu melanina com estrutura irregular. <strong>Manchas assimétricas prejudicam a camuflagem.</strong>' },
+      11:{ to:'C', effect:'neutral', text:'Mutação em região 3\' UTR. <strong>Sem impacto na proteína.</strong>' },
+    }
+  },
+  'leopard-speed': {
+    seq: 'ATCGATCGATCG',
+    positions: {
+      0: { to:'G', effect:'help',    text:'A mutação (A→G) otimizou uma isoforma da miosina muscular. <strong>Contração mais rápida — leopardo mais veloz!</strong>' },
+      1: { to:'A', effect:'neutral', text:'Mudança sinônima no gene da actina. <strong>Musculatura inalterada.</strong>' },
+      2: { to:'G', effect:'harm',    text:'A mutação (C→G) alterou uma enzima do metabolismo energético. <strong>Menos ATP disponível — velocidade reduzida.</strong>' },
+      3: { to:'T', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito no desempenho muscular.</strong>' },
+      4: { to:'C', effect:'help',    text:'A mutação (A→C) aumentou a densidade de mitocôndrias nas fibras rápidas. <strong>Mais resistência em corridas!</strong>' },
+      5: { to:'G', effect:'harm',    text:'A mutação (T→G) reduziu a flexibilidade dos tendões. <strong>Risco maior de lesão e velocidade máxima menor.</strong>' },
+      6: { to:'T', effect:'neutral', text:'Mutação sinônima no gene da tropomiosina. <strong>Sem efeito.</strong>' },
+      7: { to:'C', effect:'help',    text:'A mutação (G→C) melhorou a eficiência da creatina quinase. <strong>Explosão muscular mais intensa!</strong>' },
+      8: { to:'T', effect:'harm',    text:'A mutação (A→T) gerou fibras musculares de contração mais lenta. <strong>Leopardo perde vantagem na corrida.</strong>' },
+      9: { to:'G', effect:'neutral', text:'Mutação silenciosa. <strong>Sem alteração funcional.</strong>' },
+      10:{ to:'A', effect:'help',    text:'A mutação (C→A) aumentou o comprimento das fibras do músculo glúteo. <strong>Passada mais longa, maior velocidade!</strong>' },
+      11:{ to:'T', effect:'harm',    text:'A mutação (G→T) afetou uma proteína de recuperação muscular. <strong>Fadiga mais rápida após corridas.</strong>' },
+    }
+  },
+  'leopard-vision': {
+    seq: 'ATCGATCGATCG',
+    positions: {
+      0: { to:'T', effect:'harm',    text:'A mutação (A→T) degradou a estrutura da rodopsina. <strong>Pior visão noturna — dificuldade de caçar à noite.</strong>' },
+      1: { to:'G', effect:'neutral', text:'Mutação sinônima no gene da opsina. <strong>Visão inalterada.</strong>' },
+      2: { to:'A', effect:'help',    text:'A mutação (C→A) aumentou a sensibilidade dos bastonetes à luz fraca. <strong>Visão noturna muito aprimorada!</strong>' },
+      3: { to:'C', effect:'harm',    text:'A mutação (G→C) afetou a proteína de reparo do epitélio pigmentar. <strong>Degeneração retiniana progressiva.</strong>' },
+      4: { to:'T', effect:'neutral', text:'Mudança em região regulatória silenciosa. <strong>Sem efeito na acuidade visual.</strong>' },
+      5: { to:'C', effect:'help',    text:'A mutação (T→C) duplicou funcionalmente um tipo de cone. <strong>Leopardo passa a distinguir melhor contraste no escuro!</strong>' },
+      6: { to:'G', effect:'harm',    text:'A mutação (C→G) reduziu a velocidade de regeneração do retinal. <strong>Adaptação mais lenta ao escuro.</strong>' },
+      7: { to:'A', effect:'neutral', text:'Mutação sinônima. <strong>Proteína visual sem alteração.</strong>' },
+      8: { to:'C', effect:'help',    text:'A mutação (A→C) aumentou a expressão de canais iônicos nos fotorreceptores. <strong>Sinal visual mais rápido ao cérebro!</strong>' },
+      9: { to:'G', effect:'harm',    text:'A mutação (T→G) gerou fotorreceptores com membrana instável. <strong>Perda gradual de células retinianas.</strong>' },
+      10:{ to:'G', effect:'neutral', text:'Mutação em região 3\' UTR. <strong>Sem impacto funcional.</strong>' },
+      11:{ to:'A', effect:'help',    text:'A mutação (G→A) aumentou a proporção bastonete/cone. <strong>Visão noturna significativamente melhorada!</strong>' },
+    }
+  },
+  'frog-skin': {
+    seq: 'GCTAGCTAGCTA',
+    positions: {
+      0: { to:'A', effect:'help',    text:'A mutação (G→A) alterou as aquaporinas da pele. <strong>Menor perda de água — sapo sobrevive melhor em ambientes secos!</strong>' },
+      1: { to:'T', effect:'harm',    text:'A mutação (C→T) danificou proteínas de junção da epiderme. <strong>Pele mais permeável a toxinas ambientais.</strong>' },
+      2: { to:'G', effect:'neutral', text:'Mudança sinônima no gene colágeno da pele. <strong>Sem alteração estrutural.</strong>' },
+      3: { to:'C', effect:'help',    text:'A mutação (A→C) aumentou a produção de muco protetor. <strong>Melhor proteção contra patógenos!</strong>' },
+      4: { to:'T', effect:'harm',    text:'A mutação (G→T) reduziu a elasticidade da pele. <strong>Mais suscetível a ressecamento e lesões.</strong>' },
+      5: { to:'A', effect:'neutral', text:'Mutação silenciosa. <strong>Pele inalterada.</strong>' },
+      6: { to:'G', effect:'help',    text:'A mutação (T→G) ativou genes de regeneração cutânea. <strong>Pele se recupera mais rápido de ferimentos!</strong>' },
+      7: { to:'C', effect:'harm',    text:'A mutação (A→C) afetou cromatóforos. <strong>Sapo perde capacidade de mudança de cor — camuflagem prejudicada.</strong>' },
+      8: { to:'T', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito fenotípico.</strong>' },
+      9: { to:'G', effect:'help',    text:'A mutação (G... já é G — C→G) melhorou isolamento osmótico. <strong>Maior resistência a variações de salinidade!</strong>' },
+      10:{ to:'C', effect:'harm',    text:'A mutação (T→C) bloqueou glândulas sebáceas. <strong>Pele seca, maior risco de infecções fúngicas.</strong>' },
+      11:{ to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Sem efeito observável.</strong>' },
+    }
+  },
+  'frog-toxin': {
+    seq: 'GCTAGCTAGCTA',
+    positions: {
+      0: { to:'T', effect:'help',    text:'A mutação (G→T) criou uma nova toxina alcaloide. <strong>Predadores evitam o sapo — maior sobrevivência!</strong>' },
+      1: { to:'A', effect:'harm',    text:'A mutação (C→A) desativou a enzima sintetizadora da toxina. <strong>Sapo perde sua defesa química.</strong>' },
+      2: { to:'C', effect:'neutral', text:'Mudança sinônima — toxina estruturalmente idêntica. <strong>Sem alteração na potência.</strong>' },
+      3: { to:'T', effect:'help',    text:'A mutação (A→T) aumentou a concentração da toxina nas glândulas. <strong>Defesa muito mais eficaz!</strong>' },
+      4: { to:'C', effect:'harm',    text:'A mutação (G→C) tornou a toxina instável. <strong>Ela se degrada rapidamente — menor proteção.</strong>' },
+      5: { to:'G', effect:'neutral', text:'Mutação em promotor silencioso. <strong>Produção de toxina inalterada.</strong>' },
+      6: { to:'A', effect:'help',    text:'A mutação (T→A) ampliou o espectro da toxina — afeta mais tipos de predadores. <strong>Proteção aprimorada!</strong>' },
+      7: { to:'C', effect:'harm',    text:'A mutação (A→C) gerou autotoxicidade parcial. <strong>O próprio sapo é afetado pela toxina produzida.</strong>' },
+      8: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Toxina sem alteração.</strong>' },
+      9: { to:'T', effect:'help',    text:'A mutação (G→T) aumentou a velocidade de secreção nas glândulas. <strong>Toxina liberada mais rapidamente ao toque!</strong>' },
+      10:{ to:'G', effect:'harm',    text:'A mutação (T→G) reduziu a solubilidade da toxina. <strong>Menos toxina liberada pela pele em situação de estresse.</strong>' },
+      11:{ to:'C', effect:'neutral', text:'Mutação em região 3\' UTR. <strong>Sem impacto funcional.</strong>' },
+    }
+  },
+  'frog-leap': {
+    seq: 'GCTAGCTAGCTA',
+    positions: {
+      0: { to:'C', effect:'help',    text:'A mutação (G→C) alongou as fibras do músculo semimembranoso. <strong>Salto 20% mais longo — fuga de predadores facilitada!</strong>' },
+      1: { to:'G', effect:'harm',    text:'A mutação (C→G) reduziu a elasticidade dos tendões posteriores. <strong>Sapo salta menos e com menor precisão.</strong>' },
+      2: { to:'T', effect:'neutral', text:'Mudança sinônima. <strong>Musculatura de salto inalterada.</strong>' },
+      3: { to:'G', effect:'help',    text:'A mutação (A→G) aumentou a proporção de fibras musculares rápidas. <strong>Saltos mais explosivos!</strong>' },
+      4: { to:'A', effect:'harm',    text:'A mutação (G→A) afetou a inserção do músculo iliofiibular. <strong>Sapo perde equilíbrio após o salto.</strong>' },
+      5: { to:'C', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito no salto.</strong>' },
+      6: { to:'C', effect:'help',    text:'A mutação (T→C) melhorou o recrutamento neural dos músculos da coxa. <strong>Reação mais rápida ao perigo!</strong>' },
+      7: { to:'G', effect:'harm',    text:'A mutação (A→G) gerou cãibras frequentes nas patas traseiras. <strong>Desvantagem na fuga de predadores.</strong>' },
+      8: { to:'A', effect:'neutral', text:'Mutação sinônima na proteína troponina. <strong>Sem alteração funcional.</strong>' },
+      9: { to:'C', effect:'help',    text:'A mutação (G→C) aumentou a resistência das articulações ao impacto. <strong>Sapo consegue pular de alturas maiores sem se machucar!</strong>' },
+      10:{ to:'A', effect:'harm',    text:'A mutação (T→A) enfraqueceu os ligamentos do joelho. <strong>Risco elevado de lesão ao saltar.</strong>' },
+      11:{ to:'T', effect:'neutral', text:'Mutação em região não traduzida. <strong>Sem efeito fenotípico.</strong>' },
+    }
+  },
+  'eagle-feather': {
+    seq: 'TACGTACGTACG',
+    positions: {
+      0: { to:'G', effect:'harm',    text:'A mutação (T→G) afetou a β-queratina das penas. <strong>Penas mais rígidas e menos aerodinâmicas — voo prejudicado.</strong>' },
+      1: { to:'T', effect:'neutral', text:'Mudança sinônima. <strong>Estrutura das penas inalterada.</strong>' },
+      2: { to:'T', effect:'help',    text:'A mutação (C→T) aumentou a densidade dos ganchos das bárbulas. <strong>Penas mais coesas — melhor sustentação no voo!</strong>' },
+      3: { to:'C', effect:'harm',    text:'A mutação (G→C) reduziu a hidrofobicidade das penas. <strong>Elas absorvem mais água — voo fica pesado sob chuva.</strong>' },
+      4: { to:'G', effect:'neutral', text:'Mutação em região regulatória silenciosa. <strong>Sem efeito visível.</strong>' },
+      5: { to:'C', effect:'help',    text:'A mutação (A→C) melhorou a pigmentação das rêmiges. <strong>Absorção de calor solar otimizada para termodinâmica do voo!</strong>' },
+      6: { to:'A', effect:'harm',    text:'A mutação (C→A) gerou cálamos (hastes) mais frágeis. <strong>Penas quebram mais facilmente durante manobras rápidas.</strong>' },
+      7: { to:'T', effect:'neutral', text:'Mutação sinônima na proteína de córtex das penas. <strong>Sem alteração estrutural.</strong>' },
+      8: { to:'G', effect:'help',    text:'A mutação (A→G) aumentou a flexibilidade das raquetes das penas caudais. <strong>Maior controle direcional no voo!</strong>' },
+      9: { to:'A', effect:'harm',    text:'A mutação (T→A) perturbou a formação dos gancho das bárbulas. <strong>Penas se desintegram mais rápido.</strong>' },
+      10:{ to:'T', effect:'neutral', text:'Mutação em íntron do gene da queratina. <strong>Sem efeito fenotípico.</strong>' },
+      11:{ to:'A', effect:'help',    text:'A mutação (G→A) reduziu o peso específico das penas sem comprometer resistência. <strong>Águia mais leve e ágil!</strong>' },
+    }
+  },
+  'eagle-sight': {
+    seq: 'TACGTACGTACG',
+    positions: {
+      0: { to:'C', effect:'help',    text:'A mutação (T→C) aumentou a densidade de fóvea central. <strong>Acuidade visual 5x acima do normal — enxerga presas a 3 km!</strong>' },
+      1: { to:'G', effect:'harm',    text:'A mutação (A→G) degradou a estrutura dos cones coloridos. <strong>Percepção de cores reduzida — dificulta identificar presas.</strong>' },
+      2: { to:'A', effect:'neutral', text:'Mudança sinônima na opsina UV. <strong>Visão ultravioleta inalterada.</strong>' },
+      3: { to:'T', effect:'help',    text:'A mutação (G→T) ampliou o campo visual periférico. <strong>Detecção de movimentos laterais muito aprimorada!</strong>' },
+      4: { to:'C', effect:'harm',    text:'A mutação (T→C) reduziu a produção de luteína na retina. <strong>Maior sensibilidade à luz intensa — dificuldade de caçar no meio-dia.</strong>' },
+      5: { to:'G', effect:'neutral', text:'Mutação silenciosa. <strong>Visão sem alteração.</strong>' },
+      6: { to:'T', effect:'help',    text:'A mutação (C→T) aumentou a velocidade de processamento neural da imagem. <strong>Reflexos de caça mais rápidos!</strong>' },
+      7: { to:'C', effect:'harm',    text:'A mutação (G→C) causou astigmatismo leve. <strong>Dificuldade de focar em alvos em movimento.</strong>' },
+      8: { to:'T', effect:'neutral', text:'Mutação em região não codificante. <strong>Sem impacto visual.</strong>' },
+      9: { to:'G', effect:'help',    text:'A mutação (T→G) expandiu a fóvea temporal. <strong>Melhor foco binocular para calcular distâncias de voo!</strong>' },
+      10:{ to:'C', effect:'harm',    text:'A mutação (C→... já é C — A→C) afetou o cristalino. <strong>Foco mais lento ao mudar de distância.</strong>' },
+      11:{ to:'T', effect:'neutral', text:'Mudança sinônima. <strong>Proteínas oculares inalteradas.</strong>' },
+    }
+  },
+  'eagle-talon': {
+    seq: 'TACGTACGTACG',
+    positions: {
+      0: { to:'A', effect:'neutral', text:'Mutação sinônima. <strong>Queratina das garras inalterada.</strong>' },
+      1: { to:'C', effect:'help',    text:'A mutação (A→C) aumentou a dureza da queratina. <strong>Garras penetram presas com mais força!</strong>' },
+      2: { to:'G', effect:'harm',    text:'A mutação (C→G) reduziu a curvatura natural das garras. <strong>Presa escorrega com mais facilidade.</strong>' },
+      3: { to:'A', effect:'neutral', text:'Mutação em região regulatória silenciosa. <strong>Sem efeito.</strong>' },
+      4: { to:'C', effect:'help',    text:'A mutação (T→C) aumentou a velocidade de crescimento das garras. <strong>Regeneração mais rápida após desgaste!</strong>' },
+      5: { to:'T', effect:'harm',    text:'A mutação (A→T) fragilizou a base da garra. <strong>Risco de fratura ao capturar presas grandes.</strong>' },
+      6: { to:'G', effect:'neutral', text:'Mudança sinônima. <strong>Sem alteração nas garras.</strong>' },
+      7: { to:'A', effect:'help',    text:'A mutação (G→A) melhorou a adesão da polpa digital. <strong>Maior firmeza ao agarrar presas em voo!</strong>' },
+      8: { to:'C', effect:'harm',    text:'A mutação (A→C) reduziu a sensibilidade dos mecanorreceptores da garra. <strong>Dificulta ajustar a força de preensão.</strong>' },
+      9: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Proteína da garra sem alteração.</strong>' },
+      10:{ to:'A', effect:'help',    text:'A mutação (C→A) aumentou o comprimento das garras em 8%. <strong>Alcance maior para capturar peixes na água!</strong>' },
+      11:{ to:'T', effect:'harm',    text:'A mutação (G→T) causou crescimento irregular das garras. <strong>Desequilíbrio ao pousar e caminhar.</strong>' },
+    }
+  },
+  'snake-venom': {
+    seq: 'CATGCATGCATG',
+    positions: {
+      0: { to:'G', effect:'help',    text:'A mutação (C→G) criou uma nova fosfolipase na peçonha. <strong>Veneno mais potente — presas imobilizadas mais rápido!</strong>' },
+      1: { to:'T', effect:'harm',    text:'A mutação (A→T) desestabilizou a estrutura da toxina. <strong>Veneno menos eficaz — cobra precisa morder mais vezes.</strong>' },
+      2: { to:'C', effect:'neutral', text:'Mudança sinônima. <strong>Composição do veneno inalterada.</strong>' },
+      3: { to:'A', effect:'help',    text:'A mutação (G→A) ampliou o espectro de ação neurotóxica. <strong>Veneno afeta mais tipos de presas!</strong>' },
+      4: { to:'T', effect:'harm',    text:'A mutação (C→T) causou autotoxicidade parcial. <strong>O próprio veneno começa a danificar os tecidos da cobra.</strong>' },
+      5: { to:'G', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito na peçonha.</strong>' },
+      6: { to:'C', effect:'help',    text:'A mutação (A→C) aumentou a concentração de hialuronidase. <strong>Veneno se espalha mais rápido pelo organismo da presa!</strong>' },
+      7: { to:'A', effect:'harm',    text:'A mutação (T→A) reduziu a resistência da cobra ao próprio veneno. <strong>Risco de autoenvenenamento em caso de lesão.</strong>' },
+      8: { to:'T', effect:'neutral', text:'Mutação sinônima. <strong>Estrutura proteica do veneno sem alteração.</strong>' },
+      9: { to:'C', effect:'help',    text:'A mutação (G→C) melhorou o sistema de injeção dos presas. <strong>Liberação de veneno mais precisa e controlada!</strong>' },
+      10:{ to:'G', effect:'harm',    text:'A mutação (A→G) reduziu a velocidade de síntese da toxina. <strong>Glândulas de veneno demoram mais para se recarregar.</strong>' },
+      11:{ to:'A', effect:'neutral', text:'Mudança sinônima. <strong>Sem alteração funcional no veneno.</strong>' },
+    }
+  },
+  'snake-digest': {
+    seq: 'CATGCATGCATG',
+    positions: {
+      0: { to:'T', effect:'help',    text:'A mutação (C→T) potencializou uma lipase gástrica. <strong>Cobra digere gordura animal muito mais eficientemente!</strong>' },
+      1: { to:'G', effect:'harm',    text:'A mutação (A→G) alterou a pepsina reptiliana. <strong>Digestão de proteínas fica incompleta — menor absorção de nutrientes.</strong>' },
+      2: { to:'A', effect:'neutral', text:'Mutação sinônima. <strong>Enzimas digestivas inalteradas.</strong>' },
+      3: { to:'C', effect:'help',    text:'A mutação (G→C) aumentou a produção de ácido clorídrico no estômago. <strong>Presas são digeridas mais rápido!</strong>' },
+      4: { to:'A', effect:'harm',    text:'A mutação (C→A) reduziu a motilidade intestinal. <strong>Cobra precisa de mais tempo para digerir e fica vulnerável.</strong>' },
+      5: { to:'T', effect:'neutral', text:'Mutação em região regulatória silenciosa. <strong>Sem efeito na digestão.</strong>' },
+      6: { to:'G', effect:'help',    text:'A mutação (A→G) expandiu a capacidade do estômago. <strong>Cobra consegue engolir presas maiores!</strong>' },
+      7: { to:'C', effect:'harm',    text:'A mutação (T→C) gerou inflamação crônica no intestino. <strong>Absorção de nutrientes comprometida.</strong>' },
+      8: { to:'G', effect:'neutral', text:'Mudança sinônima. <strong>Metabolismo digestivo sem alteração.</strong>' },
+      9: { to:'T', effect:'help',    text:'A mutação (G→T) aumentou a produção de bile. <strong>Cobra digere répteis com escamas com mais facilidade!</strong>' },
+      10:{ to:'C', effect:'harm',    text:'A mutação (A→C) afetou os microvilos intestinais. <strong>Área de absorção reduzida — cobra perde peso gradualmente.</strong>' },
+      11:{ to:'G', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto funcional.</strong>' },
+    }
+  },
+  'snake-scale': {
+    seq: 'CATGCATGCATG',
+    positions: {
+      0: { to:'A', effect:'help',    text:'A mutação (C→A) aumentou a sobreposição das escamas ventrais. <strong>Melhor propulsão no solo — cobra se move mais rápido!</strong>' },
+      1: { to:'C', effect:'harm',    text:'A mutação (A→C) reduziu a resistência das escamas à abrasão. <strong>Cobra se machuca mais em terrenos rochosos.</strong>' },
+      2: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Estrutura das escamas inalterada.</strong>' },
+      3: { to:'T', effect:'help',    text:'A mutação (G→T) aumentou a refletância das escamas. <strong>Melhor termorregulação — cobra aquece mais rápido pela manhã!</strong>' },
+      4: { to:'G', effect:'harm',    text:'A mutação (C→G) tornou as escamas menos flexíveis. <strong>Movimentos mais lentos e rígidos.</strong>' },
+      5: { to:'C', effect:'neutral', text:'Mudança silenciosa. <strong>Sem efeito nas escamas.</strong>' },
+      6: { to:'T', effect:'help',    text:'A mutação (A→T) criou microestruturas hidrofóbicas nas escamas. <strong>Cobra desliza melhor em superfícies úmidas!</strong>' },
+      7: { to:'G', effect:'harm',    text:'A mutação (T→G) afetou a queratina dorsal. <strong>Escamas se soltam prematuramente — proteção reduzida.</strong>' },
+      8: { to:'C', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito fenotípico.</strong>' },
+      9: { to:'A', effect:'help',    text:'A mutação (G→A) melhorou a coloração críptica das escamas. <strong>Camuflagem aprimorada para emboscadas!</strong>' },
+      10:{ to:'T', effect:'harm',    text:'A mutação (A→T) gerou irregularidades na superfície das escamas. <strong>Maior resistência ao movimento — cobra fica mais lenta.</strong>' },
+      11:{ to:'C', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem alteração visível.</strong>' },
+    }
+  },
+  'fish-gills': {
+    seq: 'AGTCAGTCAGTC',
+    positions: {
+      0: { to:'C', effect:'harm',    text:'A mutação (A→C) reduziu a superfície das lamelas branquiais. <strong>Peixe extrai menos oxigênio — menor resistência em correntes fortes.</strong>' },
+      1: { to:'A', effect:'neutral', text:'Mutação sinônima. <strong>Estrutura das brânquias inalterada.</strong>' },
+      2: { to:'A', effect:'help',    text:'A mutação (G→A) aumentou a densidade de capilares nas brânquias. <strong>Maior eficiência na troca de O₂/CO₂!</strong>' },
+      3: { to:'G', effect:'harm',    text:'A mutação (C→G) afetou as células de cloro. <strong>Regulação osmótica comprometida em água salgada.</strong>' },
+      4: { to:'T', effect:'neutral', text:'Mudança em região não codificante. <strong>Sem efeito nas brânquias.</strong>' },
+      5: { to:'C', effect:'help',    text:'A mutação (A→C) melhorou a hemoglobina adaptada a baixo O₂. <strong>Peixe sobrevive em águas menos oxigenadas!</strong>' },
+      6: { to:'A', effect:'harm',    text:'A mutação (G→A) reduziu a produção de muco protetor. <strong>Brânquias mais vulneráveis a parasitas.</strong>' },
+      7: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Proteínas branquiais sem alteração.</strong>' },
+      8: { to:'T', effect:'help',    text:'A mutação (A→T) aumentou a velocidade de batimento do opérculo. <strong>Ventilação branquial mais eficiente em repouso!</strong>' },
+      9: { to:'A', effect:'harm',    text:'A mutação (G→A) gerou fusão parcial das lamelas. <strong>Troca gasosa gravemente comprometida.</strong>' },
+      10:{ to:'G', effect:'neutral', text:'Mudança silenciosa. <strong>Sem efeito funcional.</strong>' },
+      11:{ to:'A', effect:'help',    text:'A mutação (C→A) otimizou canais iônicos de Na⁺/K⁺. <strong>Peixe gasta menos energia para manter equilíbrio osmótico!</strong>' },
+    }
+  },
+  'fish-color': {
+    seq: 'AGTCAGTCAGTC',
+    positions: {
+      0: { to:'G', effect:'help',    text:'A mutação (A→G) ativou cromatóforos alaranjados extras. <strong>Coloração mais viva — maior sucesso na atração de parceiros!</strong>' },
+      1: { to:'C', effect:'harm',    text:'A mutação (G→C) reduziu a produção de melanóforos. <strong>Peixe fica pálido — mais visível para predadores.</strong>' },
+      2: { to:'T', effect:'neutral', text:'Mutação sinônima. <strong>Pigmentação inalterada.</strong>' },
+      3: { to:'A', effect:'help',    text:'A mutação (C→A) criou iridóforos com reflexo UV. <strong>Comunicação entre indivíduos da mesma espécie aprimorada!</strong>' },
+      4: { to:'C', effect:'harm',    text:'A mutação (A→C) bloqueou a síntese de xantóforos. <strong>Peixe perde tons amarelos — reconhecimento de espécie prejudicado.</strong>' },
+      5: { to:'G', effect:'neutral', text:'Mutação em região regulatória silenciosa. <strong>Sem efeito na cor.</strong>' },
+      6: { to:'T', effect:'help',    text:'A mutação (G→T) permitiu mudança de cor rápida por estresse. <strong>Peixe sinaliza ameaça para o cardume instantaneamente!</strong>' },
+      7: { to:'C', effect:'harm',    text:'A mutação (T→C) gerou distribuição irregular de pigmento. <strong>Padrão de cor perturbado — parceiros rejeitam o indivíduo.</strong>' },
+      8: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Sem alteração visível.</strong>' },
+      9: { to:'T', effect:'help',    text:'A mutação (G→T) aumentou o brilho dos flancos. <strong>Melhor camuflagem contra luz solar vinda de cima — predadores confusos!</strong>' },
+      10:{ to:'C', effect:'harm',    text:'A mutação (A→C) desequilibrou a proporção de cromatóforos. <strong>Peixe nunca consegue exibir a cor correta de acasalamento.</strong>' },
+      11:{ to:'A', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto fenotípico.</strong>' },
+    }
+  },
+  'fish-fin': {
+    seq: 'AGTCAGTCAGTC',
+    positions: {
+      0: { to:'T', effect:'help',    text:'A mutação (A→T) aumentou a rigidez dos raios da nadadeira caudal. <strong>Propulsão mais poderosa — peixe nada mais rápido!</strong>' },
+      1: { to:'C', effect:'harm',    text:'A mutação (G→C) reduziu a área da nadadeira dorsal. <strong>Menor estabilidade em manobras rápidas.</strong>' },
+      2: { to:'C', effect:'neutral', text:'Mudança sinônima. <strong>Nadadeiras inalteradas.</strong>' },
+      3: { to:'G', effect:'help',    text:'A mutação (C→G) alongou as nadadeiras peitorais. <strong>Melhor manobrabilidade em espaços apertados!</strong>' },
+      4: { to:'G', effect:'harm',    text:'A mutação (A→G) fragilizou a membrana interradial. <strong>Nadadeira se rasga facilmente contra corais.</strong>' },
+      5: { to:'T', effect:'neutral', text:'Mutação em íntron. <strong>Sem efeito nas nadadeiras.</strong>' },
+      6: { to:'A', effect:'help',    text:'A mutação (G→A) reduziu o peso das nadadeiras sem perder área. <strong>Peixe usa menos energia para nadar!</strong>' },
+      7: { to:'G', effect:'harm',    text:'A mutação (T→G) gerou assimetria entre as nadadeiras peitorais. <strong>Peixe nada em círculos — desvantagem enorme.</strong>' },
+      8: { to:'C', effect:'neutral', text:'Mutação sinônima. <strong>Proteínas da nadadeira sem alteração.</strong>' },
+      9: { to:'A', effect:'help',    text:'A mutação (G→A) tornou os raios da nadadeira mais flexíveis. <strong>Melhor amortecimento em correntes — peixe economiza energia!</strong>' },
+      10:{ to:'T', effect:'harm',    text:'A mutação (A→T) reduziu a regeneração das nadadeiras após lesão. <strong>Recuperação muito mais lenta.</strong>' },
+      11:{ to:'G', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto funcional.</strong>' },
+    }
+  },
+  'turtle-shell': {
+    seq: 'GCTAAGCTAAGC',
+    positions: {
+      0: { to:'A', effect:'help',    text:'A mutação (G→A) aumentou a deposição de hidroxiapatita na carapaça. <strong>Carapaça mais dura — resistência a mordidas de predadores!</strong>' },
+      1: { to:'G', effect:'harm',    text:'A mutação (C→G) reduziu a síntese de colágeno da carapaça. <strong>Carapaça mais frágil e quebradiça.</strong>' },
+      2: { to:'A', effect:'neutral', text:'Mutação sinônima. <strong>Estrutura da carapaça inalterada.</strong>' },
+      3: { to:'G', effect:'help',    text:'A mutação (A→G) otimizou a curvatura dorsal da carapaça. <strong>Melhor hidrodinâmica para tartarugas aquáticas!</strong>' },
+      4: { to:'T', effect:'harm',    text:'A mutação (A→T) perturbou o padrão de crescimento dos escudos. <strong>Carapaça irregular cria pontos de fraqueza.</strong>' },
+      5: { to:'C', effect:'neutral', text:'Mudança em região regulatória silenciosa. <strong>Sem efeito.</strong>' },
+      6: { to:'T', effect:'help',    text:'A mutação (G→T) aumentou a absorção de cálcio pelo epitélio ósseo. <strong>Carapaça se regenera mais rápido após danos!</strong>' },
+      7: { to:'G', effect:'harm',    text:'A mutação (C→G) gerou porosidade excessiva na carapaça. <strong>Resistência estrutural comprometida.</strong>' },
+      8: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Proteínas da carapaça sem alteração.</strong>' },
+      9: { to:'T', effect:'help',    text:'A mutação (A→T) reduziu o peso da carapaça em 12%. <strong>Tartaruga se move mais rápido na água!</strong>' },
+      10:{ to:'C', effect:'harm',    text:'A mutação (A→C) afetou a queratina dos escudos. <strong>Carapaça descama prematuramente.</strong>' },
+      11:{ to:'T', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto fenotípico.</strong>' },
+    }
+  },
+  'turtle-lung': {
+    seq: 'GCTAAGCTAAGC',
+    positions: {
+      0: { to:'C', effect:'help',    text:'A mutação (G→C) aumentou a capacidade de armazenamento de O₂ nos pulmões. <strong>Tartaruga consegue mergulhar por mais tempo!</strong>' },
+      1: { to:'T', effect:'harm',    text:'A mutação (C→T) reduziu a eficiência das trocas gasosas alveolares. <strong>Tartaruga precisa emergir com mais frequência.</strong>' },
+      2: { to:'G', effect:'neutral', text:'Mutação sinônima. <strong>Capacidade pulmonar inalterada.</strong>' },
+      3: { to:'C', effect:'help',    text:'A mutação (A→C) melhorou a flexibilidade da parede pulmonar. <strong>Tartaruga suporta pressões maiores em mergulhos profundos!</strong>' },
+      4: { to:'G', effect:'harm',    text:'A mutação (A→G) gerou tecido cicatricial nos pulmões. <strong>Volume respiratório permanentemente reduzido.</strong>' },
+      5: { to:'T', effect:'neutral', text:'Mudança silenciosa. <strong>Sem efeito nos pulmões.</strong>' },
+      6: { to:'A', effect:'help',    text:'A mutação (G→A) aumentou a produção de surfactante. <strong>Pulmões não colapsam em mergulhos — resistência aprimorada!</strong>' },
+      7: { to:'A', effect:'harm',    text:'A mutação (C→A) reduziu a vascularização pulmonar. <strong>Menos oxigênio chega à corrente sanguínea.</strong>' },
+      8: { to:'T', effect:'neutral', text:'Mutação sinônima. <strong>Proteínas pulmonares sem alteração.</strong>' },
+      9: { to:'G', effect:'help',    text:'A mutação (A→G) otimizou a hemoglobina para liberar O₂ lentamente. <strong>Maior duração dos mergulhos!</strong>' },
+      10:{ to:'T', effect:'harm',    text:'A mutação (A→T) gerou fibrose pulmonar progressiva. <strong>Capacidade respiratória decai com a idade.</strong>' },
+      11:{ to:'A', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto funcional.</strong>' },
+    }
+  },
+  'turtle-swim': {
+    seq: 'GCTAAGCTAAGC',
+    positions: {
+      0: { to:'T', effect:'help',    text:'A mutação (G→T) alongou as nadadeiras anteriores. <strong>Tartaruga marinha nada distâncias maiores com menos esforço!</strong>' },
+      1: { to:'A', effect:'harm',    text:'A mutação (C→A) afetou a musculatura da nadadeira. <strong>Força de propulsão reduzida — tartaruga fica para trás nas correntes.</strong>' },
+      2: { to:'T', effect:'neutral', text:'Mutação sinônima. <strong>Nadadeiras inalteradas.</strong>' },
+      3: { to:'T', effect:'help',    text:'A mutação (A→T) melhorou a hidrodinâmica do casco. <strong>Menor arrasto na água — migração mais eficiente!</strong>' },
+      4: { to:'C', effect:'harm',    text:'A mutação (A→C) gerou assimetria nas nadadeiras. <strong>Tartaruga nada em curvas — difícil navegar em mar aberto.</strong>' },
+      5: { to:'G', effect:'neutral', text:'Mutação em região não codificante. <strong>Sem efeito na natação.</strong>' },
+      6: { to:'C', effect:'help',    text:'A mutação (G→C) aumentou a proporção de fibras musculares de resistência. <strong>Tartaruga suporta migrações de milhares de quilômetros!</strong>' },
+      7: { to:'T', effect:'harm',    text:'A mutação (C→T) reduziu a flexibilidade das articulações das nadadeiras. <strong>Menos maniobrabilidade em correntes fortes.</strong>' },
+      8: { to:'A', effect:'neutral', text:'Mudança sinônima. <strong>Proteínas musculares sem alteração.</strong>' },
+      9: { to:'C', effect:'help',    text:'A mutação (A→C) otimizou o ângulo de ataque das nadadeiras. <strong>Cada batida gera mais propulsão!</strong>' },
+      10:{ to:'G', effect:'harm',    text:'A mutação (A→G) reduziu a produção de mioglobina nos músculos. <strong>Menos O₂ disponível durante mergulhos longos.</strong>' },
+      11:{ to:'T', effect:'neutral', text:'Mutação em 3\' UTR. <strong>Sem impacto fenotípico.</strong>' },
+    }
+  },
+};
+
+const complement = { A:'T', T:'A', C:'G', G:'C' };
+const bases = ['A','T','C','G'];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let selectedAnimal = null;
+let selectedTrait  = null;
+let mutatedPos     = -1;   // -1 = not mutated yet
+let currentSeq     = [];
+let originalSeq    = [];
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+  const grid = document.getElementById('animalGrid');
+  grid.innerHTML = '';
+  ANIMALS.forEach(a => {
+    const btn = document.createElement('button');
+    btn.className = 'animal-btn';
+    btn.id = 'a-' + a.id;
+    btn.innerHTML = `<span class="emoji">${a.emoji}</span><span class="name">${a.name}</span>`;
+    btn.onclick = () => selectAnimal(a.id);
+    grid.appendChild(btn);
+  });
+}
+
+function selectAnimal(id) {
+  selectedAnimal = ANIMALS.find(a => a.id === id);
+  selectedTrait  = null;
+  document.querySelectorAll('.animal-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('a-' + id).classList.add('selected');
+  document.getElementById('btnNext0').disabled = false;
+}
+
+function selectTrait(id) {
+  selectedTrait = id;
+  document.querySelectorAll('.trait-btn').forEach(b => b.classList.remove('selected'));
+  document.getElementById('t-' + id).classList.add('selected');
+  document.getElementById('btnNext1').disabled = false;
+}
+
+function goStep(n) {
+  if (n === 1 && !selectedAnimal) return;
+  if (n === 2 && !selectedTrait)  return;
+
+  [0,1,2].forEach(i => {
+    document.getElementById('step' + i).classList.add('hidden');
+    const dot = document.getElementById('dot' + i);
+    dot.classList.remove('active','done');
+    if (i < n) dot.classList.add('done');
+  });  document.getElementById('step' + n).classList.remove('hidden');
+  document.getElementById('dot' + n).classList.add('active');
+
+
+  if (n === 1) buildTraitStep();
+  if (n === 2) buildDNAStep();
+}
+
+function buildTraitStep() {
+  document.getElementById('animalSummary').innerHTML =
+    `<span class="big">${selectedAnimal.emoji}</span><span><strong>${selectedAnimal.name}</strong> selecionado</span>`;
+
+  const list = document.getElementById('traitList');
+  list.innerHTML = '';
+  selectedAnimal.traits.forEach(tid => {
+    const t = TRAITS[tid];
+    const btn = document.createElement('button');
+    btn.className = 'trait-btn';
+    btn.id = 't-' + tid;
+    btn.innerHTML = `<span class="t-icon">${t.icon}</span><div><div class="t-label">${t.label}</div><div class="t-sub">${t.sub}</div></div>`;
+    btn.onclick = () => selectTrait(tid);
+    list.appendChild(btn);
+  });
+  document.getElementById('btnNext1').disabled = true;
+}
+
+function buildDNAStep() {
+  const key = selectedAnimal.id + '-' + selectedTrait;
+  const sc  = SCENARIOS[key];
+  const t   = TRAITS[selectedTrait];
+
+  document.getElementById('traitSummary').innerHTML =
+    `<span class="big">${selectedAnimal.emoji}</span><span><strong>${selectedAnimal.name}</strong> — ${t.icon} ${t.label}</span>`;
+
+  // Reset state
+  mutatedPos  = -1;
+  originalSeq = sc.seq.split('');
+  currentSeq  = [...originalSeq];
+
+  // Reset UI
+  document.getElementById('mutLabel').classList.remove('show');
+  document.getElementById('questionArea').classList.remove('show');
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('hintDna').classList.remove('done');
+
+  renderDNA();
+}
+
+function renderDNA() {
+  const posRow  = document.getElementById('posRow');
+  const strand1 = document.getElementById('strand1');
+  const bonds   = document.getElementById('bonds');
+  const strand2 = document.getElementById('strand2');
+  posRow.innerHTML = strand1.innerHTML = bonds.innerHTML = strand2.innerHTML = '';
+
+  currentSeq.forEach((base, i) => {
+    // position number
+    const pn = document.createElement('div');
+    pn.className = 'pos-num'; pn.textContent = i + 1;
+    posRow.appendChild(pn);
+
+    // strand1 — clickable only if not yet mutated
+    const b1 = document.createElement('div');
+    const isMutated = (i === mutatedPos);
+    b1.className = 'base ' + base + (isMutated ? ' mutated' : '') + (mutatedPos === -1 ? ' clickable' : '');
+    b1.textContent = base;
+    if (mutatedPos === -1) {
+      b1.title = `Posição ${i+1}: ${base} — clique para mutar`;
+      b1.onclick = () => applyMutation(i);
+    }
+    strand1.appendChild(b1);
+
+    // bond
+    const bd = document.createElement('div');
+    bd.className = 'bond'; bd.textContent = '||';
+    bonds.appendChild(bd);
+
+    // strand2 (complement, always static)
+    const b2 = document.createElement('div');
+    b2.className = 'base ' + complement[base];
+    b2.textContent = complement[base];
+    strand2.appendChild(b2);
+  });
+}
+
+function applyMutation(pos) {
+  const key = selectedAnimal.id + '-' + selectedTrait;
+  const sc  = SCENARIOS[key];
+  const posData = sc.positions[pos];
+
+  // Apply mutation
+  currentSeq[pos] = posData.to;
+  mutatedPos = pos;
+
+  renderDNA();
+
+  // Show mutation label
+  const ml = document.getElementById('mutLabel');
+  ml.classList.add('show');
+  ml.innerHTML = `<strong>Mutação detectada!</strong> Posição ${pos+1}: 
+    <span style="color:#f87171">${originalSeq[pos]}</span> → 
+    <span style="color:#4ade80">${posData.to}</span> 
+    &nbsp;|&nbsp; Gene relacionado a: <em>${TRAITS[selectedTrait].label}</em>`;
+
+  // Show question
+  document.getElementById('questionArea').classList.add('show');
+  document.getElementById('feedback').className = 'feedback';
+
+  // Update hint
+  document.getElementById('hintDna').classList.add('done');
+  document.getElementById('hintDna').textContent = '✅ Mutação aplicada na posição ' + (pos+1);
+
+
+}
+
+function answer(choice) {
+  const key    = selectedAnimal.id + '-' + selectedTrait;
+  const sc     = SCENARIOS[key];
+  const posData = sc.positions[mutatedPos];
+  const fb     = document.getElementById('feedback');
+  fb.style.display = 'block';
+
+  const colorMap = { help:'green', harm:'red', neutral:'gray' };
+  const correct  = posData.effect === choice;
+
+  fb.className = 'feedback show ' + colorMap[posData.effect];
+  fb.innerHTML = (correct ? '✅ <strong>Correto!</strong> ' : '🔄 <strong>Quase!</strong> ') + posData.text;
+}
+
+function resetAll() {
+  selectedAnimal = null; selectedTrait = null;
+  mutatedPos = -1; originalSeq = []; currentSeq = [];
+  document.querySelectorAll('.animal-btn').forEach(b => b.classList.remove('selected'));
+  [0,1,2].forEach(i => {
+    const d = document.getElementById('dot'+i);
+    d.classList.remove('active','done');
+  });
+  document.getElementById('dot0').classList.add('active');
+  document.getElementById('btnNext0').disabled = true;
+  [1,2].forEach(i => document.getElementById('step'+i).classList.add('hidden'));
+  document.getElementById('step0').classList.remove('hidden');
+}
+
+init();
+</script>
+</body>
+</html>
